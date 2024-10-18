@@ -1,0 +1,141 @@
+{% extends "admin/includes/layout.html" %}
+
+{% block main_content %}
+    <div id="app" class="row">
+        <!-- Form Section for Add/Edit Category -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>[[ isEdit ? 'Edit' : 'Add' ]] Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" v-model="category.name" placeholder="Enter category name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" v-model="category.description" placeholder="Enter category description"></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button @click="onSave()" type="button" class="btn btn-primary">[[ isEdit ? 'Update' : 'Add' ]]</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Table -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Categories</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr class="bg-primary text-white">
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, index) in categories" :key="index">
+                                    <td>[[ index + 1 ]]</td>
+                                    <td>[[ item.name ]]</td>
+                                    <td>[[ item.description ]]</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary" @click="editCategory(index)">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" @click="deleteCategory(index)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    const { createApp } = Vue;
+
+    createApp({
+        delimiters: ['[[', ']]'],
+        data() {
+            return {
+                isEdit: false,
+                currentIndex: null,
+                category: { name: '', description: '' },
+                categories: []
+            };
+        },
+        methods: {
+            // Fetch all categories
+            fetchCategories() {
+                axios.get('/api/categories')
+                    .then(response => {
+                        this.categories = response.data;
+                    })
+                    .catch(error => {
+                        console.error("There was an error fetching categories:", error);
+                    });
+            },
+            onSave() {
+                if (this.isEdit) {
+                    axios.put(`/api/categories/${this.category.id}`, this.category)
+                        .then(response => {
+                            this.categories[this.currentIndex] = response.data;
+                            this.resetForm();
+                        })
+                        .catch(error => {
+                            console.error("There was an error updating the category:", error);
+                        });
+                } else {
+                    axios.post('/api/categories', this.category)
+                        .then(response => {
+                            this.categories.push(response.data);
+                            this.resetForm();
+                        })
+                        .catch(error => {
+                            console.error("There was an error adding the category:", error);
+                        });
+                }
+            },
+            editCategory(index) {
+                this.isEdit = true;
+                this.currentIndex = index;
+                this.category = { ...this.categories[index] };
+            },
+            deleteCategory(index) {
+                const categoryId = this.categories[index].id;
+                if (confirm('Are you sure you want to delete this category?')) {
+                    axios.delete(`/api/categories/${categoryId}`)
+                        .then(response => {
+                            this.categories.splice(index, 1);
+                        })
+                        .catch(error => {
+                            console.error("There was an error deleting the category:", error);
+                        });
+                }
+            },
+            resetForm() {
+                this.isEdit = false;
+                this.category = { name: '', description: '' };
+            }
+        },
+        mounted() {
+            this.fetchCategories();
+        }
+    }).mount('#app');
+</script>
+{% endblock %}

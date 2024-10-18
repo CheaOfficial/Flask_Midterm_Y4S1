@@ -1,0 +1,176 @@
+{% extends "admin/includes/layout.html" %}
+
+{% block main_content %}
+    <div id="app" class="row">
+        <!-- Form Section for Add/Edit Product -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>[[ isEdit ? 'Edit' : 'Add' ]] Product</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Code</label>
+                        <input type="text" class="form-control" id="code" v-model="product.code" placeholder="Enter product code">
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" v-model="product.name" placeholder="Enter product name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-control" id="category" v-model="product.category_id">
+                            <option value="" disabled>Select a category</option>
+                            <option v-for="category in categories" :key="category.id" :value="category.id">
+                                [[ category.name ]]
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Price</label>
+                        <input type="number" class="form-control" id="price" v-model="product.price" placeholder="Enter product price">
+                    </div>
+                    <div class="mb-3">
+                        <label for="stock" class="form-label">Stock</label>
+                        <input type="number" class="form-control" id="stock" v-model="product.current_stock" placeholder="Enter product stock">
+                    </div>
+                    <div class="d-grid">
+                        <button @click="onSave()" type="button" class="btn btn-primary">[[ isEdit ? 'Update' : 'Add' ]]</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Table -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr class="bg-primary text-white">
+                                    <th>ID</th>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, index) in products" :key="index">
+                                    <td>[[ index + 1 ]]</td>
+                                    <td>[[ item.code ]]</td>
+                                    <td>[[ item.name ]]</td>
+                                    <td>[[ item.category_name ]]</td>
+                                    <td>[[ item.price ]]</td>
+                                    <td>[[ item.current_stock ]]</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary" @click="editProduct(index)">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" @click="deleteProduct(index)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    const { createApp } = Vue;
+
+    createApp({
+        delimiters: ['[[', ']]'],
+        data() {
+            return {
+                isEdit: false,
+                currentIndex: null,
+                product: { code: '', name: '', category_id: '', price: 0, stock: 0 },
+                products: [],
+                categories: []
+            };
+        },
+        methods: {
+            // Fetch all products
+            fetchProducts() {
+                axios.get('/api/products')
+                    .then(response => {
+                        this.products = response.data;
+                    })
+                    .catch(error => {
+                        console.error("There was an error fetching products:", error);
+                    });
+            },
+            // Fetch all categories
+            fetchCategories() {
+                axios.get('/api/categories')
+                    .then(response => {
+                        this.categories = response.data;
+                    })
+                    .catch(error => {
+                        console.error("There was an error fetching categories:", error);
+                    });
+            },
+            onSave() {
+                if (this.isEdit) {
+                    axios.put(`/api/products/${this.product.id}`, this.product)
+                        .then(response => {
+                            this.products[this.currentIndex] = response.data;
+                            this.resetForm();
+                        })
+                        .catch(error => {
+                            console.error("There was an error updating the product:", error);
+                        });
+                } else {
+                    axios.post('/api/products', this.product)
+                        .then(response => {
+                            this.products.push(response.data);
+                            this.resetForm();
+                        })
+                        .catch(error => {
+                            console.error("There was an error adding the product:", error);
+                        });
+                }
+            },
+            editProduct(index) {
+                this.isEdit = true;
+                this.currentIndex = index;
+                this.product = { ...this.products[index] };
+            },
+            deleteProduct(index) {
+                const productId = this.products[index].id;
+                if (confirm('Are you sure you want to delete this product?')) {
+                    axios.delete(`/api/products/${productId}`)
+                        .then(response => {
+                            this.products.splice(index, 1);
+                        })
+                        .catch(error => {
+                            console.error("There was an error deleting the product:", error);
+                        });
+                }
+            },
+            resetForm() {
+                this.isEdit = false;
+                this.product = { code: '', name: '', category_id: '', price: 0, stock: 0 };
+            }
+        },
+        mounted() {
+            this.fetchProducts();
+            this.fetchCategories();
+        }
+    }).mount('#app');
+</script>
+{% endblock %}

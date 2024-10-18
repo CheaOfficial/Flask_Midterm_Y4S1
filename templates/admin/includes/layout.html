@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% include "admin/includes/head.html" %}
+    <body>
+    <div class="wrapper">
+      <!-- Sidebar -->
+        {% include "admin/includes/sidebar.html" %}
+      <!-- End Sidebar -->
+
+      <div class="main-panel">
+{#          {% include "admin/includes/main-header.html" %}#}
+
+{#          content#}
+          {% block main_content %}
+          {% endblock %}
+
+        {% include "admin/includes/footer.html" %}
+      </div>
+
+    </div>
+    {% include "admin/includes/footer_scripts.html" %}
+
+    {% block script %}
+    {% endblock %}
+  </body>
+</html>
